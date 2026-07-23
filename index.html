@@ -275,6 +275,41 @@
   ];
   const CAT = Object.fromEntries(CATEGORIES.map(c => [c.key, c]));
 
+  // Display-only categories that appear in historical statements but aren't
+  // part of the go-forward $550 budget (no target card, still counts to total).
+  const EXTRA_CAT = {
+    "Fees & Adjustments": { label: "Fees & Adjustments", color: "#0ea5e9" },
+  };
+
+  // ── Seed history (from bank statements; category-level totals) ──
+  // Written once per period only if that period has no saved data yet, so
+  // entries stay fully editable/deletable afterward.
+  const SEED = {
+    // Mar 24 – Apr 22, 2026 · $685.81
+    "expensesheet_2026_02": [
+      { id: "seed-2026-02-restaurant", desc: "Restaurant (statement total)",            amount: 230.40, category: "Restaurant",          date: "2026-03-24" },
+      { id: "seed-2026-02-fees",       desc: "Fees & Adjustments (statement total)",    amount: 195.00, category: "Fees & Adjustments", date: "2026-03-24" },
+      { id: "seed-2026-02-merch",      desc: "Merchandise & Supplies (statement total)",amount: 149.19, category: "Merchandise",         date: "2026-03-24" },
+      { id: "seed-2026-02-other",      desc: "Other (statement total)",                 amount: 111.22, category: "Other",               date: "2026-03-24" },
+    ],
+    // Apr 23 – May 22, 2026 · $692.51
+    "expensesheet_2026_03": [
+      { id: "seed-2026-03-restaurant",    desc: "Restaurant (statement total)",             amount: 241.10, category: "Restaurant",    date: "2026-04-23" },
+      { id: "seed-2026-03-business",      desc: "Business Services (statement total)",       amount: 205.00, category: "Business",      date: "2026-04-23" },
+      { id: "seed-2026-03-entertainment", desc: "Entertainment (statement total)",           amount: 178.50, category: "Entertainment", date: "2026-04-23" },
+      { id: "seed-2026-03-merch",         desc: "Merchandise & Supplies (statement total)",  amount:  56.66, category: "Merchandise",   date: "2026-04-23" },
+      { id: "seed-2026-03-other",         desc: "Other (statement total)",                   amount:  11.25, category: "Other",         date: "2026-04-23" },
+    ],
+  };
+
+  function applySeed() {
+    Object.entries(SEED).forEach(([key, items]) => {
+      if (localStorage.getItem(key) === null) {
+        localStorage.setItem(key, JSON.stringify(items));
+      }
+    });
+  }
+
   // ── Billing period state ──
   // A period is identified by the calendar year/month of its START (the 23rd).
   let periodYear, periodMonth; // month is 0-indexed
@@ -382,7 +417,7 @@
     }
     const sorted = [...shown].sort((a, b) => b.date.localeCompare(a.date));
     listEl.innerHTML = sorted.map(e => {
-      const c = CAT[e.category] || { label: e.category, color: "#6b7280" };
+      const c = CAT[e.category] || EXTRA_CAT[e.category] || { label: e.category, color: "#6b7280" };
       const dateStr = new Date(e.date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
       return `
         <li class="exp-item">
@@ -442,6 +477,7 @@
 
   // ── Init ──
   buildStatics();
+  applySeed();
   initPeriod();
   document.getElementById("inp-date").value = new Date().toISOString().split("T")[0];
   document.getElementById("btn-add").addEventListener("click", add);
