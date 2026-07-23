@@ -279,35 +279,56 @@
   // part of the go-forward $550 budget (no target card, still counts to total).
   const EXTRA_CAT = {
     "Fees & Adjustments": { label: "Fees & Adjustments", color: "#0ea5e9" },
+    "Transportation":     { label: "Transportation",     color: "#10b981" },
   };
 
   // ── Seed history (from bank statements; category-level totals) ──
-  // Written once per period only if that period has no saved data yet, so
-  // entries stay fully editable/deletable afterward.
+  // Entries are dated on the 23rd (period start) so they always fall inside
+  // the 23rd→22nd window, regardless of the statement's exact close date.
+  const SEED_VERSION = 3; // bump whenever the SEED data below changes
   const SEED = {
+    // Feb 21 – Mar 23, 2026 · $364.68
+    "expensesheet_2026_01": [
+      { id: "seed-2026-01-restaurant", desc: "Restaurant (statement total)",             amount: 235.04, category: "Restaurant",  date: "2026-02-23" },
+      { id: "seed-2026-01-merch",      desc: "Merchandise & Supplies (statement total)", amount: 114.24, category: "Merchandise", date: "2026-02-23" },
+      { id: "seed-2026-01-other",      desc: "Other (statement total)",                  amount:  15.40, category: "Other",       date: "2026-02-23" },
+    ],
     // Mar 24 – Apr 22, 2026 · $685.81
     "expensesheet_2026_02": [
-      { id: "seed-2026-02-restaurant", desc: "Restaurant (statement total)",            amount: 230.40, category: "Restaurant",          date: "2026-03-24" },
-      { id: "seed-2026-02-fees",       desc: "Fees & Adjustments (statement total)",    amount: 195.00, category: "Fees & Adjustments", date: "2026-03-24" },
-      { id: "seed-2026-02-merch",      desc: "Merchandise & Supplies (statement total)",amount: 149.19, category: "Merchandise",         date: "2026-03-24" },
-      { id: "seed-2026-02-other",      desc: "Other (statement total)",                 amount: 111.22, category: "Other",               date: "2026-03-24" },
+      { id: "seed-2026-02-restaurant", desc: "Restaurant (statement total)",            amount: 230.40, category: "Restaurant",          date: "2026-03-23" },
+      { id: "seed-2026-02-fees",       desc: "Fees & Adjustments (statement total)",    amount: 195.00, category: "Fees & Adjustments", date: "2026-03-23" },
+      { id: "seed-2026-02-merch",      desc: "Merchandise & Supplies (statement total)",amount: 149.19, category: "Merchandise",         date: "2026-03-23" },
+      { id: "seed-2026-02-other",      desc: "Other (statement total)",                 amount: 111.22, category: "Other",               date: "2026-03-23" },
     ],
-    // Apr 23 – May 22, 2026 · $692.51
+    // Apr 23 – May 22, 2026 · $714.22
     "expensesheet_2026_03": [
-      { id: "seed-2026-03-restaurant",    desc: "Restaurant (statement total)",             amount: 241.10, category: "Restaurant",    date: "2026-04-23" },
+      { id: "seed-2026-03-restaurant",    desc: "Restaurant (statement total)",             amount: 262.81, category: "Restaurant",    date: "2026-04-23" },
       { id: "seed-2026-03-business",      desc: "Business Services (statement total)",       amount: 205.00, category: "Business",      date: "2026-04-23" },
       { id: "seed-2026-03-entertainment", desc: "Entertainment (statement total)",           amount: 178.50, category: "Entertainment", date: "2026-04-23" },
       { id: "seed-2026-03-merch",         desc: "Merchandise & Supplies (statement total)",  amount:  56.66, category: "Merchandise",   date: "2026-04-23" },
       { id: "seed-2026-03-other",         desc: "Other (statement total)",                   amount:  11.25, category: "Other",         date: "2026-04-23" },
     ],
+    // May 23 – Jun 22, 2026 · $1,061.72
+    "expensesheet_2026_04": [
+      { id: "seed-2026-04-business",       desc: "Business Services (statement total)",       amount: 500.09, category: "Business",       date: "2026-05-23" },
+      { id: "seed-2026-04-transportation", desc: "Transportation (statement total)",          amount: 427.63, category: "Transportation", date: "2026-05-23" },
+      { id: "seed-2026-04-restaurant",     desc: "Restaurant (statement total)",              amount: 111.58, category: "Restaurant",     date: "2026-05-23" },
+      { id: "seed-2026-04-merch",          desc: "Merchandise & Supplies (statement total)",  amount:  22.42, category: "Merchandise",    date: "2026-05-23" },
+    ],
   };
 
+  // Re-applies seed data when SEED_VERSION changes: refreshes seed-managed
+  // entries (id starts with "seed-") to current values while preserving any
+  // expenses you added yourself.
   function applySeed() {
+    if (localStorage.getItem("expensesheet_seedver") === String(SEED_VERSION)) return;
     Object.entries(SEED).forEach(([key, items]) => {
-      if (localStorage.getItem(key) === null) {
-        localStorage.setItem(key, JSON.stringify(items));
-      }
+      let existing;
+      try { existing = JSON.parse(localStorage.getItem(key)) || []; } catch { existing = []; }
+      const userAdded = existing.filter(e => !String(e.id).startsWith("seed-"));
+      localStorage.setItem(key, JSON.stringify([...items, ...userAdded]));
     });
+    localStorage.setItem("expensesheet_seedver", String(SEED_VERSION));
   }
 
   // ── Billing period state ──
