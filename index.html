@@ -61,11 +61,20 @@
     }
     .subtitle { font-size: 0.9rem; color: var(--muted); margin-top: 4px; }
 
+    .period-controls { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
     .period-nav {
       display: flex; align-items: center; gap: 8px;
       background: var(--card); border: 1px solid var(--border); border-radius: 999px;
       padding: 5px 6px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     }
+    .today-btn {
+      display: none; align-items: center; gap: 6px;
+      background: none; border: 1px solid var(--border); border-radius: 999px;
+      padding: 4px 12px; font-family: var(--font); font-size: 0.74rem; font-weight: 600;
+      color: var(--purple); cursor: pointer; transition: background 0.15s, border-color 0.15s;
+    }
+    .today-btn.show { display: inline-flex; }
+    .today-btn:hover { background: var(--card-soft); border-color: var(--border-hover, rgba(167,139,250,0.4)); }
     .period-nav button {
       background: none; border: none; width: 30px; height: 30px; border-radius: 999px;
       cursor: pointer; font-size: 0.9rem; color: var(--text);
@@ -191,10 +200,13 @@
         <h1>Expense <span class="gradient-text">Sheet</span></h1>
         <div class="subtitle">Billing-period spending against a $550 goal</div>
       </div>
-      <div class="period-nav">
-        <button id="prev-period" title="Previous period">&#8592;</button>
-        <span id="period-label"></span>
-        <button id="next-period" title="Next period">&#8594;</button>
+      <div class="period-controls">
+        <div class="period-nav">
+          <button id="prev-period" title="Previous period">&#8592;</button>
+          <span id="period-label"></span>
+          <button id="next-period" title="Next period">&#8594;</button>
+        </div>
+        <button id="today-btn" class="today-btn" title="Jump to current pay period">&#8634; Current period</button>
       </div>
     </div>
 
@@ -335,15 +347,30 @@
   // A period is identified by the calendar year/month of its START (the 23rd).
   let periodYear, periodMonth; // month is 0-indexed
 
-  function initPeriod() {
+  // The billing period containing today (start year/month, month 0-indexed).
+  function currentPeriod() {
     const now = new Date();
-    periodYear = now.getFullYear();
-    periodMonth = now.getMonth();
-    if (now.getDate() < CYCLE_START_DAY) {
-      // still in the period that began last month
-      periodMonth -= 1;
-      if (periodMonth < 0) { periodMonth = 11; periodYear -= 1; }
+    let y = now.getFullYear(), m = now.getMonth();
+    if (now.getDate() < CYCLE_START_DAY) { // still in the period that began last month
+      m -= 1;
+      if (m < 0) { m = 11; y -= 1; }
     }
+    return { y, m };
+  }
+
+  function initPeriod() {
+    const { y, m } = currentPeriod();
+    periodYear = y; periodMonth = m;
+  }
+
+  function isCurrentPeriod() {
+    const { y, m } = currentPeriod();
+    return periodYear === y && periodMonth === m;
+  }
+
+  function goToCurrent() {
+    initPeriod();
+    render();
   }
 
   function periodStart() { return new Date(periodYear, periodMonth, CYCLE_START_DAY); }
@@ -388,6 +415,7 @@
     const all = load();
     const expenses = all.filter(e => inPeriod(e.date));
     document.getElementById("period-label").textContent = periodLabel();
+    document.getElementById("today-btn").classList.toggle("show", !isCurrentPeriod());
 
     const spent = expenses.reduce((s, e) => s + e.amount, 0);
     const remaining = GOAL - spent;
@@ -506,6 +534,7 @@
   document.getElementById("inp-amount").addEventListener("keydown", e => { if (e.key === "Enter") add(); });
   document.getElementById("prev-period").addEventListener("click", () => changePeriod(-1));
   document.getElementById("next-period").addEventListener("click", () => changePeriod(1));
+  document.getElementById("today-btn").addEventListener("click", goToCurrent);
   document.getElementById("filter-cat").addEventListener("change", render);
   render();
 </script>
